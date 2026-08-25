@@ -19,8 +19,8 @@ async function main() {
         create: [
           {
             type: 'info',
-            title: 'Dashboard Initialized',
-            body: 'Welcome to the official Discord Account Dashboard. You can now connect up to 5 Discord accounts.',
+            title: 'Welcome to D-Connect',
+            body: 'Welcome to D-Connect. You can now connect and manage all your Discord accounts securely.',
           },
         ],
       },

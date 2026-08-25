@@ -2,9 +2,9 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Discord Account Dashboard | Official Multi-Account Manager',
+  title: 'D-Connect | Official Multi-Account Discord Hub',
   description:
-    'Securely manage and monitor multiple user-owned Discord accounts via official Discord OAuth2 and REST APIs.',
+    'Connect, manage, and monitor all your Discord accounts securely with official Discord OAuth2 and AES-256-GCM encryption.',
 };
 
 export default function RootLayout({
@@ -14,7 +14,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      <body className="min-h-screen bg-[#141517] text-[#F2F3F5] antialiased">
+      <body className="min-h-screen bg-[#0A0A0C] text-[#F3F4F6] antialiased">
         {children}
       </body>
     </html>
