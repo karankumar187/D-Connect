@@ -150,7 +150,7 @@ function AccountsContent() {
   });
 
   return (
-    <div className="min-h-screen bg-[#0A0A0C] text-[#F3F4F6] pb-16 selection:bg-[#7C3AED] selection:text-white">
+    <div className="min-h-screen bg-[#0A0A0C] text-[#F3F4F6] pb-28 md:pb-16 selection:bg-[#7C3AED] selection:text-white">
       <TopNav user={user} />
 
       {toastMessage && (
@@ -184,11 +184,11 @@ function AccountsContent() {
         </div>
       )}
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 pt-8 space-y-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 pt-6 sm:pt-8 space-y-6 sm:space-y-8">
         {/* Header Title & Add Account Button */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-semibold tracking-tight text-white font-sans">
+            <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-white font-sans">
               Connected Accounts
             </h1>
             <p className="text-xs text-zinc-400 mt-1">
@@ -198,7 +198,7 @@ function AccountsContent() {
 
           <button
             onClick={() => setIsAddModalOpen(true)}
-            className="flex items-center gap-2 self-start sm:self-auto bg-gradient-to-r from-[#7C3AED] via-[#8B5CF6] to-[#A855F7] hover:from-[#6D28D9] hover:to-[#9333EA] text-white text-xs font-semibold px-5 py-2.5 rounded-full shadow-lg shadow-purple-900/30 hover:shadow-purple-700/40 transition-all active:scale-[0.98]"
+            className="flex items-center justify-center gap-2 w-full sm:w-auto bg-gradient-to-r from-[#7C3AED] via-[#8B5CF6] to-[#A855F7] hover:from-[#6D28D9] hover:to-[#9333EA] text-white text-xs font-semibold px-5 py-2.5 rounded-full shadow-lg shadow-purple-900/30 hover:shadow-purple-700/40 transition-all active:scale-[0.98]"
           >
             <Plus size={15} />
             <span>Connect New Account</span>

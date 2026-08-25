@@ -196,7 +196,7 @@ export default function AccountDetailPage() {
     account.authorizationStatus === 'expired';
 
   return (
-    <div className="min-h-screen bg-[#0A0A0C] text-[#F3F4F6] pb-16 selection:bg-[#7C3AED] selection:text-white">
+    <div className="min-h-screen bg-[#0A0A0C] text-[#F3F4F6] pb-28 md:pb-16 selection:bg-[#7C3AED] selection:text-white">
       <TopNav user={user} />
 
       {toastMessage && (
@@ -207,7 +207,7 @@ export default function AccountDetailPage() {
                 ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20'
                 : toastMessage.type === 'error'
                 ? 'bg-rose-500/10 text-rose-300 border-rose-500/20'
-                : 'bg-[#7C3AED]/10 text-purple-300 border-[#7C3AED]/20'
+                : 'bg-[#7C3AED]/15 text-purple-200 border-[#7C3AED]/30 shadow-md shadow-purple-950/30'
             }`}
           >
             <div className="flex items-center gap-2">
@@ -228,7 +228,7 @@ export default function AccountDetailPage() {
         </div>
       )}
 
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 pt-8 space-y-6">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 pt-6 sm:pt-8 space-y-6">
         {/* Back Link */}
         <Link
           href="/accounts"
@@ -239,15 +239,15 @@ export default function AccountDetailPage() {
         </Link>
 
         {/* Profile Banner Card */}
-        <div className="bg-[#141518] border border-[#22242A] rounded-3xl p-7 shadow-xl">
+        <div className="bg-[#141518] border border-[#22242A] rounded-3xl p-5 sm:p-7 shadow-xl">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
-            <div className="flex items-center gap-5">
-              <div className="relative">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-5 w-full sm:w-auto">
+              <div className="relative shrink-0">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={account.avatarUrl || 'https://cdn.discordapp.com/embed/avatars/0.png'}
                   alt={account.username}
-                  className="w-18 h-18 sm:w-20 sm:h-20 rounded-3xl object-cover ring-2 ring-[#22242A] bg-[#0A0A0C]"
+                  className="w-16 h-16 sm:w-20 sm:h-20 rounded-3xl object-cover ring-2 ring-purple-500/25 bg-[#0A0A0C]"
                 />
                 <div
                   className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full ring-3 ring-[#141518] ${
@@ -260,9 +260,9 @@ export default function AccountDetailPage() {
                 />
               </div>
 
-              <div>
-                <div className="flex items-center gap-3">
-                  <h2 className="text-2xl font-bold text-white tracking-tight">
+              <div className="overflow-hidden w-full">
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight truncate">
                     {account.globalName || account.username}
                   </h2>
                   {isConnected ? (
@@ -279,7 +279,7 @@ export default function AccountDetailPage() {
                   @{account.username}
                 </p>
 
-                <div className="flex flex-wrap items-center gap-3 mt-2.5">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-2.5">
                   <button
                     onClick={handleCopyId}
                     className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#1A1B20] text-zinc-300 text-xs font-mono border border-[#22242A] hover:text-white transition-colors"
@@ -293,7 +293,7 @@ export default function AccountDetailPage() {
                   </button>
 
                   {account.email && (
-                    <span className="text-xs text-zinc-400">
+                    <span className="text-xs text-zinc-400 truncate max-w-full">
                       Email: <span className="text-zinc-200">{account.email}</span>
                     </span>
                   )}
@@ -302,7 +302,7 @@ export default function AccountDetailPage() {
             </div>
 
             {/* Actions */}
-            <div className="flex items-center gap-2.5 self-stretch sm:self-auto justify-end">
+            <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end pt-2 sm:pt-0 border-t sm:border-t-0 border-[#22242A]/60">
               <button
                 onClick={handleRefresh}
                 disabled={isRefreshing}

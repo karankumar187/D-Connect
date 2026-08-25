@@ -81,13 +81,13 @@ export default function NotificationsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0A0A0C] text-[#F3F4F6] pb-16 selection:bg-[#7C3AED] selection:text-white">
+    <div className="min-h-screen bg-[#0A0A0C] text-[#F3F4F6] pb-28 md:pb-16 selection:bg-[#7C3AED] selection:text-white">
       <TopNav user={user} unreadCount={unreadCount} />
 
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 pt-8 space-y-6">
-        <div className="flex items-center justify-between">
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 pt-6 sm:pt-8 space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-semibold tracking-tight text-white font-sans">
+            <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-white font-sans">
               Notifications
             </h1>
             <p className="text-xs text-zinc-400 mt-1">
