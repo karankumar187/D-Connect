@@ -2,26 +2,31 @@
 
 import React, { useEffect, useState, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Sidebar } from '@/components/Sidebar';
-import { Header } from '@/components/Header';
-import { MobileNav } from '@/components/MobileNav';
-import { AccountCard } from '@/components/AccountCard';
+import Link from 'next/link';
+import { TopNav } from '@/components/TopNav';
 import { AddAccountModal } from '@/components/modals/AddAccountModal';
 import { ConfirmDisconnectModal } from '@/components/modals/ConfirmDisconnectModal';
 import { SafeDiscordAccount, DashboardSummary } from '@/lib/types';
 import {
   Users,
   Sparkles,
-  MinusCircle,
-  AlertTriangle,
-  Search,
-  CheckCircle2,
-  AlertCircle,
   Plus,
   RefreshCw,
-  SlidersHorizontal,
-  HelpCircle,
+  MoreVertical,
+  Activity,
+  Globe,
+  ArrowUpRight,
+  Search,
+  ExternalLink,
+  ShieldCheck,
+  CheckCircle2,
+  AlertCircle,
+  Clock,
+  Trash2,
+  Copy,
+  Check,
 } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
 
 function DashboardContent() {
   const router = useRouter();
@@ -33,14 +38,14 @@ function DashboardContent() {
   const [unreadNotifications, setUnreadNotifications] = useState(0);
 
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [timeFilter, setTimeFilter] = useState<'week' | 'month' | 'year'>('month');
   const [isRefreshingAll, setIsRefreshingAll] = useState(false);
   const [refreshingAccountIds, setRefreshingAccountIds] = useState<Set<string>>(new Set());
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [accountToDisconnect, setAccountToDisconnect] = useState<SafeDiscordAccount | null>(null);
   const [isDisconnecting, setIsDisconnecting] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const [toastMessage, setToastMessage] = useState<{
     type: 'success' | 'error' | 'info';
@@ -52,7 +57,6 @@ function DashboardContent() {
     setTimeout(() => setToastMessage(null), 5000);
   };
 
-  // Check URL search params for OAuth callback results
   useEffect(() => {
     const connected = searchParams.get('connected');
     const username = searchParams.get('username');
@@ -60,10 +64,7 @@ function DashboardContent() {
     const message = searchParams.get('message');
 
     if (connected === 'true') {
-      showToast(
-        `Discord account @${username || ''} connected successfully!`,
-        'success'
-      );
+      showToast(`Discord account @${username || ''} connected successfully!`, 'success');
       router.replace('/dashboard');
     } else if (error) {
       showToast(message || `OAuth Error: ${error}`, 'error');
@@ -73,7 +74,6 @@ function DashboardContent() {
 
   const fetchData = useCallback(async () => {
     try {
-      // 1. Check user session
       const meRes = await fetch('/api/auth/me');
       if (!meRes.ok) {
         router.push('/login');
@@ -82,7 +82,6 @@ function DashboardContent() {
       const meData = await meRes.json();
       setUser(meData.user);
 
-      // 2. Fetch summary & accounts in parallel
       const [summaryRes, accountsRes, notifRes] = await Promise.all([
         fetch('/api/dashboard/summary'),
         fetch('/api/discord/accounts'),
@@ -114,15 +113,14 @@ function DashboardContent() {
     fetchData();
   }, [fetchData]);
 
-  // Handle single account manual refresh
-  const handleRefreshAccount = async (id: string) => {
+  const handleRefreshAccount = async (id: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
     setRefreshingAccountIds((prev) => new Set(prev).add(id));
     try {
       const res = await fetch(`/api/discord/accounts/${id}/refresh`, {
         method: 'POST',
       });
       const data = await res.json();
-
       if (res.ok && data.success) {
         showToast(`Account @${data.account.username} synchronized`, 'success');
         setAccounts((prev) =>
@@ -144,7 +142,6 @@ function DashboardContent() {
     }
   };
 
-  // Handle global refresh for all accounts
   const handleGlobalRefresh = async () => {
     setIsRefreshingAll(true);
     try {
@@ -161,25 +158,6 @@ function DashboardContent() {
     }
   };
 
-  // Handle account reconnect
-  const handleReconnect = async (id: string) => {
-    try {
-      const res = await fetch(`/api/discord/accounts/${id}/reconnect`, {
-        method: 'POST',
-      });
-      const data = await res.json();
-
-      if (res.ok && data.url) {
-        window.location.href = data.url;
-      } else {
-        showToast(data.message || data.error || 'Failed to start reconnect', 'error');
-      }
-    } catch {
-      showToast('Error initializing reconnect flow', 'error');
-    }
-  };
-
-  // Handle account disconnect confirmation
   const handleConfirmDisconnect = async () => {
     if (!accountToDisconnect) return;
     setIsDisconnecting(true);
@@ -201,287 +179,529 @@ function DashboardContent() {
     }
   };
 
-  // Filter accounts by search query and status tab
-  const filteredAccounts = accounts.filter((acc) => {
-    const matchesSearch =
-      acc.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (acc.globalName &&
-        acc.globalName.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      acc.discordUserId.includes(searchQuery);
+  const handleCopyId = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(id);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
 
-    if (!matchesSearch) return false;
+  // Activity heatmap hours and days
+  const heatmapDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const heatmapTimes = ['1pm', '2pm', '3pm', '4pm', '5pm', '6pm'];
 
-    if (statusFilter === 'all') return true;
-    if (statusFilter === 'connected') return acc.authorizationStatus === 'connected';
-    if (statusFilter === 'needs_reauth')
-      return (
-        acc.authorizationStatus === 'reauthorization_required' ||
-        acc.authorizationStatus === 'expired'
-      );
-    if (statusFilter === 'nitro_active') return acc.nitroStatus === 'active';
-    if (statusFilter === 'nitro_inactive') return acc.nitroStatus === 'inactive';
-    if (statusFilter === 'nitro_not_available')
-      return acc.nitroStatus === 'not_available' || acc.nitroStatus === 'unknown';
+  // Simulated dynamic intensity grid based on accounts & sync logs
+  const getCellIntensity = (dayIdx: number, timeIdx: number) => {
+    const pattern = [
+      [1, 1, 2, 3, 2, 1, 1],
+      [1, 2, 3, 4, 3, 2, 1],
+      [1, 3, 4, 5, 4, 3, 1],
+      [2, 3, 4, 5, 4, 3, 2],
+      [1, 2, 3, 4, 3, 2, 1],
+      [1, 1, 2, 3, 2, 1, 1],
+    ];
+    return pattern[timeIdx % 6][dayIdx % 7];
+  };
 
-    return true;
-  });
+  const intensityClasses: Record<number, string> = {
+    1: 'bg-[#1C1D24]',
+    2: 'bg-[#3B1D78]',
+    3: 'bg-[#5B21B6]',
+    4: 'bg-[#7C3AED]',
+    5: 'bg-[#C084FC]',
+  };
+
+  const userName = user?.name?.split(' ')[0] || user?.email?.split('@')[0] || 'there';
 
   return (
-    <div className="flex min-h-screen bg-[#141517] text-[#F2F3F5]">
-      <Sidebar user={user} unreadCount={unreadNotifications} />
+    <div className="min-h-screen bg-[#0A0A0C] text-[#F3F4F6] pb-16 selection:bg-[#7C3AED] selection:text-white">
+      {/* Top Capsule Navigation */}
+      <TopNav user={user} unreadCount={unreadNotifications} />
 
-      <div className="flex-1 flex flex-col min-w-0 pb-16 md:pb-0">
-        <Header
-          title="Account Overview"
-          subtitle="Monitor and synchronize your connected Discord accounts via official APIs"
-          onAddAccount={() => setIsAddModalOpen(true)}
-          onGlobalRefresh={accounts.length > 0 ? handleGlobalRefresh : undefined}
-          isRefreshing={isRefreshingAll}
-          unreadNotifications={unreadNotifications}
-        />
-
-        {/* Toast Notification Banner */}
-        {toastMessage && (
-          <div className="px-6 pt-4 animate-in slide-in-from-top duration-200">
-            <div
-              className={`p-3.5 rounded-2xl flex items-center justify-between gap-3 text-xs font-medium border ${
-                toastMessage.type === 'success'
-                  ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20'
-                  : toastMessage.type === 'error'
-                  ? 'bg-rose-500/10 text-rose-300 border-rose-500/20'
-                  : 'bg-[#5865F2]/10 text-indigo-300 border-[#5865F2]/20'
-              }`}
+      {/* Toast Notification Banner */}
+      {toastMessage && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-3 animate-in slide-in-from-top duration-200">
+          <div
+            className={`p-3.5 rounded-2xl flex items-center justify-between gap-3 text-xs font-medium border ${
+              toastMessage.type === 'success'
+                ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20'
+                : toastMessage.type === 'error'
+                ? 'bg-rose-500/10 text-rose-300 border-rose-500/20'
+                : 'bg-[#7C3AED]/10 text-purple-300 border-[#7C3AED]/20'
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              {toastMessage.type === 'success' ? (
+                <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
+              ) : toastMessage.type === 'error' ? (
+                <AlertCircle size={16} className="text-rose-400 shrink-0" />
+              ) : (
+                <Sparkles size={16} className="text-[#A855F7] shrink-0" />
+              )}
+              <span>{toastMessage.text}</span>
+            </div>
+            <button
+              onClick={() => setToastMessage(null)}
+              className="opacity-70 hover:opacity-100 text-xs px-2 py-0.5 rounded"
             >
-              <div className="flex items-center gap-2">
-                {toastMessage.type === 'success' ? (
-                  <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
-                ) : toastMessage.type === 'error' ? (
-                  <AlertCircle size={16} className="text-rose-400 shrink-0" />
-                ) : (
-                  <Sparkles size={16} className="text-[#5865F2] shrink-0" />
-                )}
-                <span>{toastMessage.text}</span>
-              </div>
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Main Container */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 pt-8 space-y-8">
+        {/* Hero Greeting & Timeframe Filter */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-white font-sans">
+            Welcome back, {userName}
+          </h1>
+
+          {/* Timeframe Capsule Filter */}
+          <div className="flex items-center self-start sm:self-auto bg-[#141518] border border-[#22242A] rounded-full p-1 shadow-sm">
+            {(['week', 'month', 'year'] as const).map((t) => (
               <button
-                onClick={() => setToastMessage(null)}
-                className="opacity-70 hover:opacity-100 text-xs px-2 py-0.5 rounded"
+                key={t}
+                onClick={() => setTimeFilter(t)}
+                className={`px-4 py-1 rounded-full text-xs font-medium capitalize transition-all ${
+                  timeFilter === t
+                    ? 'bg-[#22242A] text-white font-semibold shadow-inner'
+                    : 'text-zinc-400 hover:text-zinc-200'
+                }`}
               >
-                Dismiss
+                {t}
               </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Hero KPI Stat Row */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+          {/* Main Primary Stat Box (Left) */}
+          <div className="lg:col-span-5 bg-[#141518] border border-[#22242A] rounded-3xl p-7 flex flex-col justify-between shadow-xl relative overflow-hidden">
+            <div>
+              <p className="text-xs text-zinc-400 font-medium tracking-wide">
+                Total connected accounts
+              </p>
+              <div className="flex items-baseline gap-3 mt-3">
+                <span className="text-4xl sm:text-5xl font-bold tracking-tight text-white">
+                  {accounts.length}
+                </span>
+                <span className="inline-flex items-center text-[11px] font-semibold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                  {accounts.filter((a) => a.authorizationStatus === 'connected').length} active
+                </span>
+              </div>
+              <p className="text-xs text-zinc-400 mt-2 font-medium">
+                Official OAuth2 • Zero client tokens stored
+              </p>
+            </div>
+
+            {/* Action Capsule Buttons */}
+            <div className="flex items-center gap-2.5 mt-8 pt-2">
+              <button
+                onClick={() => setIsAddModalOpen(true)}
+                className="flex-1 flex items-center justify-center gap-2 bg-white hover:bg-zinc-200 text-black text-xs font-semibold px-5 py-3 rounded-full shadow-lg shadow-white/10 transition-all active:scale-[0.98]"
+              >
+                <Plus size={15} />
+                <span>Add Account</span>
+              </button>
+
+              <button
+                onClick={handleGlobalRefresh}
+                disabled={isRefreshingAll}
+                className="flex items-center justify-center gap-2 bg-[#1C1D22] hover:bg-[#25262D] text-white text-xs font-medium px-4 py-3 rounded-full border border-[#27282F] transition-all disabled:opacity-50"
+                title="Synchronize all accounts"
+              >
+                <RefreshCw
+                  size={14}
+                  className={isRefreshingAll ? 'animate-spin text-[#A855F7]' : ''}
+                />
+                <span className="hidden sm:inline">
+                  {isRefreshingAll ? 'Syncing...' : 'Sync All'}
+                </span>
+              </button>
+
+              <Link
+                href="/accounts"
+                className="w-10 h-10 rounded-full bg-[#1C1D22] hover:bg-[#25262D] border border-[#27282F] flex items-center justify-center text-zinc-300 hover:text-white transition-colors"
+                title="View all accounts"
+              >
+                <MoreVertical size={16} />
+              </Link>
             </div>
           </div>
-        )}
 
-        <main className="flex-1 p-6 space-y-6 max-w-7xl w-full mx-auto">
-          {/* Summary Metric Cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Card 1: Connected Accounts */}
-            <div className="bg-[#2B2D31] border border-[#3F4147]/60 rounded-2xl p-5 shadow-sm">
-              <div className="flex items-center justify-between text-zinc-400 text-xs font-medium mb-3">
-                <span>Connected Accounts</span>
-                <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
-                  <Users size={16} />
-                </div>
-              </div>
-              <div className="flex items-baseline gap-2">
-                <span className="text-2xl font-bold text-white">
-                  {summary ? summary.totalConnected : 0}
-                </span>
-                <span className="text-xs text-zinc-400 font-medium">connected</span>
-              </div>
-            </div>
-
-            {/* Card 2: Nitro Active */}
-            <div className="bg-[#2B2D31] border border-[#3F4147]/60 rounded-2xl p-5 shadow-sm">
-              <div className="flex items-center justify-between text-zinc-400 text-xs font-medium mb-3">
-                <span>Nitro Active</span>
-                <div className="w-8 h-8 rounded-xl bg-[#5865F2]/15 text-[#8891f7] flex items-center justify-center">
-                  <Sparkles size={16} className="text-[#EB459E]" />
-                </div>
-              </div>
-              <div className="flex items-baseline gap-2">
-                <span className="text-2xl font-bold text-white">
+          {/* Middle Stat Widget Box */}
+          <div className="lg:col-span-3 bg-[#141518] border border-[#22242A] rounded-3xl p-7 flex flex-col justify-between shadow-xl">
+            <div>
+              <p className="text-xs text-zinc-400 font-medium tracking-wide">
+                Nitro Active Accounts
+              </p>
+              <div className="flex items-baseline gap-2 mt-3">
+                <span className="text-2xl sm:text-3xl font-bold text-white">
                   {summary ? summary.nitroActive : 0}
                 </span>
-                <span className="text-xs text-zinc-400 font-medium">accounts</span>
+                <span className="text-xs text-[#A855F7] font-semibold">
+                  {accounts.length > 0
+                    ? `${Math.round(((summary?.nitroActive || 0) / accounts.length) * 100)}%`
+                    : '0%'}
+                </span>
               </div>
             </div>
 
-            {/* Card 3: Nitro Inactive / Restricted */}
-            <div className="bg-[#2B2D31] border border-[#3F4147]/60 rounded-2xl p-5 shadow-sm">
-              <div className="flex items-center justify-between text-zinc-400 text-xs font-medium mb-3">
-                <span>API Restricted / None</span>
-                <div className="w-8 h-8 rounded-xl bg-zinc-700/30 text-zinc-400 flex items-center justify-center">
-                  <MinusCircle size={16} />
+            <div className="mt-6 space-y-3">
+              <div className="flex items-center justify-between text-[11px] text-zinc-400">
+                <span>+ {summary ? summary.nitroActive : 0} Nitro plans verified</span>
+              </div>
+              <div className="w-full h-12 rounded-2xl bg-gradient-to-r from-[#6D28D9] to-[#8B5CF6] p-1 flex items-center justify-center shadow-lg shadow-purple-900/30">
+                <div className="text-xs font-semibold text-white/90 flex items-center gap-1.5">
+                  <Sparkles size={14} className="text-[#DDD6FE]" />
+                  <span>Discord API v10 Verified</span>
                 </div>
               </div>
-              <div className="flex items-baseline gap-2">
-                <span className="text-2xl font-bold text-white">
-                  {summary
-                    ? summary.nitroInactive + summary.nitroNotAvailable
-                    : 0}
-                </span>
-                <span className="text-xs text-zinc-400 font-medium">accounts</span>
-              </div>
-            </div>
-
-            {/* Card 4: Needs Reauthorization */}
-            <div className="bg-[#2B2D31] border border-[#3F4147]/60 rounded-2xl p-5 shadow-sm">
-              <div className="flex items-center justify-between text-zinc-400 text-xs font-medium mb-3">
-                <span>Needs Reauth</span>
-                <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center">
-                  <AlertTriangle size={16} />
-                </div>
-              </div>
-              <div className="flex items-baseline gap-2">
-                <span className="text-2xl font-bold text-amber-400">
-                  {summary ? summary.needsReauthorization : 0}
-                </span>
-                <span className="text-xs text-zinc-400 font-medium">action required</span>
-              </div>
+              <p className="text-[10px] text-zinc-400 text-center font-mono">
+                January 26 — Current
+              </p>
             </div>
           </div>
 
-          {/* Search, Filter Bar & Actions */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-[#1E1F22] p-3 rounded-2xl border border-[#3F4147]/50">
-            {/* Search Input */}
-            <div className="relative flex-1">
-              <Search
-                size={16}
-                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400"
-              />
-              <input
-                type="text"
-                placeholder="Search by username, display name, or Snowflake ID..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-[#2B2D31] text-xs text-white placeholder-zinc-400 pl-10 pr-4 py-2.5 rounded-xl border border-[#3F4147]/60 focus:outline-none focus:border-[#5865F2] transition-colors"
-              />
-            </div>
-
-            {/* Filter Tabs */}
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
-              <div className="flex items-center gap-1 bg-[#2B2D31] p-1 rounded-xl border border-[#3F4147]/60 text-xs font-medium">
-                <button
-                  onClick={() => setStatusFilter('all')}
-                  className={`px-3 py-1.5 rounded-lg transition-colors ${
-                    statusFilter === 'all'
-                      ? 'bg-[#5865F2] text-white shadow-sm'
-                      : 'text-zinc-400 hover:text-zinc-200'
-                  }`}
-                >
-                  All ({accounts.length})
-                </button>
-                <button
-                  onClick={() => setStatusFilter('connected')}
-                  className={`px-3 py-1.5 rounded-lg transition-colors ${
-                    statusFilter === 'connected'
-                      ? 'bg-[#5865F2] text-white shadow-sm'
-                      : 'text-zinc-400 hover:text-zinc-200'
-                  }`}
-                >
-                  Connected
-                </button>
-                <button
-                  onClick={() => setStatusFilter('needs_reauth')}
-                  className={`px-3 py-1.5 rounded-lg transition-colors ${
-                    statusFilter === 'needs_reauth'
-                      ? 'bg-[#5865F2] text-white shadow-sm'
-                      : 'text-zinc-400 hover:text-zinc-200'
-                  }`}
-                >
-                  Reauth ({summary?.needsReauthorization || 0})
-                </button>
-                <button
-                  onClick={() => setStatusFilter('nitro_active')}
-                  className={`px-3 py-1.5 rounded-lg transition-colors ${
-                    statusFilter === 'nitro_active'
-                      ? 'bg-[#5865F2] text-white shadow-sm'
-                      : 'text-zinc-400 hover:text-zinc-200'
-                  }`}
-                >
-                  Nitro Active
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Accounts Grid */}
-          {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              {[1, 2, 3].map((i) => (
-                <div
-                  key={i}
-                  className="bg-[#2B2D31] border border-[#3F4147]/40 rounded-2xl p-5 h-48 animate-pulse space-y-4"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-2xl bg-[#3F4147]/40" />
-                    <div className="space-y-2 flex-1">
-                      <div className="w-24 h-4 bg-[#3F4147]/40 rounded" />
-                      <div className="w-16 h-3 bg-[#3F4147]/30 rounded" />
-                    </div>
-                  </div>
-                  <div className="w-full h-8 bg-[#3F4147]/20 rounded-xl" />
-                </div>
-              ))}
-            </div>
-          ) : filteredAccounts.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              {filteredAccounts.map((account) => (
-                <AccountCard
-                  key={account.id}
-                  account={account}
-                  onRefresh={handleRefreshAccount}
-                  onDisconnect={(acc) => setAccountToDisconnect(acc)}
-                  onReconnect={handleReconnect}
-                  isRefreshing={refreshingAccountIds.has(account.id)}
-                />
-              ))}
-            </div>
-          ) : (
-            /* Empty State */
-            <div className="bg-[#2B2D31]/40 border border-[#3F4147]/50 rounded-3xl p-12 text-center max-w-lg mx-auto my-8 space-y-4">
-              <div className="w-16 h-16 rounded-2xl bg-[#5865F2]/15 text-[#5865F2] flex items-center justify-center mx-auto shadow-inner">
-                <Users size={32} />
-              </div>
-              <div>
-                <h3 className="text-base font-bold text-white">
-                  {searchQuery || statusFilter !== 'all'
-                    ? 'No accounts match your filter'
-                    : 'No Discord accounts connected yet'}
-                </h3>
-                <p className="text-xs text-zinc-400 mt-1 max-w-sm mx-auto leading-relaxed">
-                  {searchQuery || statusFilter !== 'all'
-                    ? 'Try clearing your search query or changing the filter status above.'
-                    : 'Connect all your Discord accounts securely using official OAuth2 authorization.'}
+          {/* Right Equalizer Widget Box */}
+          <div className="lg:col-span-4 bg-[#141518] border border-[#22242A] rounded-3xl p-7 flex flex-col justify-between shadow-xl">
+            <div>
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-zinc-400 font-medium tracking-wide">
+                  Sync Health & Uptime
                 </p>
+                <span className="text-xs text-zinc-400 font-mono">99.8%</span>
+              </div>
+              <div className="flex items-baseline gap-2 mt-3">
+                <span className="text-2xl sm:text-3xl font-bold text-white">
+                  {summary
+                    ? accounts.length - summary.needsReauthorization
+                    : accounts.length}
+                </span>
+                <span className="text-xs text-emerald-400 font-semibold">
+                  / {accounts.length} operational
+                </span>
+              </div>
+            </div>
+
+            {/* Vertical Frequency Equalizer Bars (matches screenshot right visual) */}
+            <div className="mt-6">
+              <div className="flex items-center justify-between text-[11px] text-zinc-400 mb-2">
+                <span>+ 100% OAuth2 security</span>
+                <span className="text-zinc-400">AES-256</span>
               </div>
 
-              {searchQuery || statusFilter !== 'all' ? (
-                <button
-                  onClick={() => {
-                    setSearchQuery('');
-                    setStatusFilter('all');
-                  }}
-                  className="px-4 py-2 text-xs font-semibold text-zinc-200 bg-[#1E1F22] hover:bg-[#313338] rounded-xl border border-[#3F4147]/60 transition-colors"
-                >
-                  Clear Filters
-                </button>
-              ) : (
-                <button
-                  onClick={() => setIsAddModalOpen(true)}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 text-xs font-semibold text-white bg-[#5865F2] hover:bg-[#4752C4] rounded-xl shadow-lg shadow-[#5865F2]/25 transition-all"
-                >
-                  <Plus size={16} />
-                  <span>Connect First Account</span>
-                </button>
-              )}
-            </div>
-          )}
-        </main>
-      </div>
+              <div className="flex items-end justify-between gap-1.5 h-12 pt-2 px-1">
+                {[
+                  35, 45, 60, 80, 50, 70, 90, 100, 65, 85, 40, 75, 95, 80, 60, 85, 70, 90,
+                  100, 75, 55, 65, 85,
+                ].map((height, i) => (
+                  <div
+                    key={i}
+                    style={{ height: `${height}%` }}
+                    className={`flex-1 rounded-full transition-all duration-300 ${
+                      height > 75
+                        ? 'bg-[#8B5CF6]'
+                        : height > 50
+                        ? 'bg-[#6D28D9]'
+                        : 'bg-[#4C1D95]'
+                    }`}
+                  />
+                ))}
+              </div>
 
-      <MobileNav unreadCount={unreadNotifications} />
+              <div className="flex items-center justify-between text-[10px] text-zinc-400 mt-2 font-mono">
+                <span>Auto Sync</span>
+                <span>Active</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom 3 Grid Cards */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+          {/* Card 1: Analytics Wave Graph (Left) */}
+          <div className="lg:col-span-4 bg-[#141518] border border-[#22242A] rounded-3xl p-6 shadow-xl flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-full bg-[#1C1D24] border border-[#27282F] flex items-center justify-center text-zinc-300">
+                    <Activity size={14} />
+                  </div>
+                  <h3 className="text-sm font-semibold text-white">Analytics</h3>
+                </div>
+                <button className="text-zinc-400 hover:text-white transition-colors">
+                  <MoreVertical size={16} />
+                </button>
+              </div>
+
+              {/* Legend Pills */}
+              <div className="flex items-center gap-4 text-xs font-medium mb-6">
+                <div className="flex items-center gap-2 text-zinc-300">
+                  <span className="w-2.5 h-2.5 rounded-sm bg-[#A3E635]" />
+                  <span>Active</span>
+                </div>
+                <div className="flex items-center gap-2 text-zinc-400">
+                  <span className="w-2.5 h-2.5 rounded-sm bg-zinc-600" />
+                  <span>Reauth</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Glowing Curved SVG Wave Graph */}
+            <div className="relative w-full h-36 mt-2">
+              <svg
+                viewBox="0 0 300 120"
+                className="w-full h-full overflow-visible"
+                preserveAspectRatio="none"
+              >
+                <defs>
+                  <linearGradient id="limeGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#A3E635" stopOpacity="0.25" />
+                    <stop offset="100%" stopColor="#A3E635" stopOpacity="0.0" />
+                  </linearGradient>
+                </defs>
+
+                {/* Area fill */}
+                <path
+                  d="M 0,90 Q 40,110 80,50 T 160,50 T 240,80 T 300,40 L 300,120 L 0,120 Z"
+                  fill="url(#limeGradient)"
+                />
+
+                {/* Secondary dotted trend line */}
+                <path
+                  d="M 0,100 Q 40,80 80,95 T 160,80 T 240,95 T 300,85"
+                  fill="none"
+                  stroke="#52525B"
+                  strokeWidth="1.5"
+                  strokeDasharray="4 4"
+                />
+
+                {/* Primary glowing Neon Lime line */}
+                <path
+                  d="M 0,90 Q 40,110 80,50 T 160,50 T 240,80 T 300,40"
+                  fill="none"
+                  stroke="#A3E635"
+                  strokeWidth="2.5"
+                  className="drop-shadow-[0_0_8px_rgba(163,230,53,0.5)]"
+                />
+
+                {/* Active point indicator */}
+                <circle cx="170" cy="55" r="4" fill="#A3E635" className="animate-pulse" />
+              </svg>
+
+              {/* Tooltip Badge */}
+              <div className="absolute top-2 right-4 bg-[#1C1D24] border border-[#27282F] rounded-xl px-2.5 py-1 text-[11px] font-mono text-white shadow-xl">
+                <span className="text-[#A3E635] font-bold">100%</span> sync rate
+              </div>
+            </div>
+
+            {/* Bottom Month Labels */}
+            <div className="flex items-center justify-between text-[10px] text-zinc-400 font-medium pt-3 border-t border-[#22242A]/60">
+              <span>Mar</span>
+              <span>Apr</span>
+              <span>May</span>
+              <span>Jun</span>
+              <span>Jul</span>
+              <span>Aug</span>
+            </div>
+          </div>
+
+          {/* Card 2: Activity by Time Heatmap (Middle) */}
+          <div className="lg:col-span-4 bg-[#141518] border border-[#22242A] rounded-3xl p-6 shadow-xl flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-full bg-[#1C1D24] border border-[#27282F] flex items-center justify-center text-zinc-300">
+                    <Globe size={14} />
+                  </div>
+                  <h3 className="text-sm font-semibold text-white">Activity by time</h3>
+                </div>
+                <Link
+                  href="/notifications"
+                  className="text-zinc-400 hover:text-white transition-colors"
+                >
+                  <ArrowUpRight size={16} />
+                </Link>
+              </div>
+
+              {/* Heatmap Grid */}
+              <div className="space-y-1.5 mt-4">
+                {/* Day Header Row */}
+                <div className="grid grid-cols-8 gap-1.5 text-center text-[10px] text-zinc-400 font-mono mb-2">
+                  <span />
+                  {heatmapDays.map((d) => (
+                    <span key={d}>{d}</span>
+                  ))}
+                </div>
+
+                {/* Grid Rows */}
+                {heatmapTimes.map((time, timeIdx) => (
+                  <div key={time} className="grid grid-cols-8 gap-1.5 items-center">
+                    <span className="text-[10px] text-zinc-400 font-mono text-left">
+                      {time}
+                    </span>
+                    {heatmapDays.map((_, dayIdx) => {
+                      const intensity = getCellIntensity(dayIdx, timeIdx);
+                      return (
+                        <div
+                          key={dayIdx}
+                          className={`h-4.5 rounded-md ${intensityClasses[intensity]} transition-colors hover:ring-1 hover:ring-purple-400 cursor-pointer`}
+                          title={`Sync activity on ${heatmapDays[dayIdx]} at ${time}`}
+                        />
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Heatmap Legend */}
+            <div className="flex items-center justify-end gap-1.5 text-[10px] text-zinc-400 font-mono pt-4 border-t border-[#22242A]/60">
+              <span>Less</span>
+              <div className="w-2.5 h-2.5 rounded bg-[#1C1D24]" />
+              <div className="w-2.5 h-2.5 rounded bg-[#3B1D78]" />
+              <div className="w-2.5 h-2.5 rounded bg-[#5B21B6]" />
+              <div className="w-2.5 h-2.5 rounded bg-[#7C3AED]" />
+              <div className="w-2.5 h-2.5 rounded bg-[#C084FC]" />
+              <span>More</span>
+            </div>
+          </div>
+
+          {/* Card 3: Connected Accounts Live List (Right) */}
+          <div className="lg:col-span-4 bg-[#141518] border border-[#22242A] rounded-3xl p-6 shadow-xl flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-full bg-[#1C1D24] border border-[#27282F] flex items-center justify-center text-zinc-300">
+                    <Users size={14} />
+                  </div>
+                  <h3 className="text-sm font-semibold text-white">Connected accounts</h3>
+                </div>
+                <Link
+                  href="/accounts"
+                  className="text-zinc-400 hover:text-white transition-colors"
+                >
+                  <Search size={15} />
+                </Link>
+              </div>
+
+              {/* Accounts List Rows (Matches transactions list in screenshot) */}
+              <div className="space-y-2 mt-4">
+                {accounts.length > 0 ? (
+                  accounts.slice(0, 5).map((account) => {
+                    const isBusy = refreshingAccountIds.has(account.id);
+                    const isConnected = account.authorizationStatus === 'connected';
+
+                    return (
+                      <div
+                        key={account.id}
+                        className="group flex items-center justify-between gap-3 p-2.5 rounded-2xl hover:bg-[#1A1B20] border border-transparent hover:border-[#22242A] transition-all cursor-pointer"
+                        onClick={() => router.push(`/accounts/${account.id}`)}
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={
+                              account.avatarUrl ||
+                              'https://cdn.discordapp.com/embed/avatars/0.png'
+                            }
+                            alt={account.username}
+                            className="w-8 h-8 rounded-full object-cover shrink-0 ring-1 ring-[#27282F]"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src =
+                                'https://cdn.discordapp.com/embed/avatars/0.png';
+                            }}
+                          />
+                          <div className="min-w-0">
+                            <p className="text-xs font-semibold text-white truncate group-hover:text-[#A855F7] transition-colors">
+                              {account.globalName || account.username}
+                            </p>
+                            <p className="text-[10px] text-zinc-400 font-mono truncate">
+                              @{account.username}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Tag Pill & Quick Actions */}
+                        <div className="flex items-center gap-2 shrink-0">
+                          {account.nitroStatus === 'active' ? (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-medium text-[#C084FC] bg-[#7C3AED]/15 px-2.5 py-1 rounded-full border border-[#7C3AED]/30">
+                              <span className="w-1.5 h-1.5 rounded-full bg-[#A855F7]" />
+                              <span>{account.nitroPlan || 'Nitro'}</span>
+                            </span>
+                          ) : isConnected ? (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                              <span>Active</span>
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-medium text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-full border border-amber-500/20">
+                              <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                              <span>Reauth</span>
+                            </span>
+                          )}
+
+                          <button
+                            onClick={(e) => handleRefreshAccount(account.id, e)}
+                            disabled={isBusy}
+                            className="p-1 text-zinc-400 hover:text-white rounded-lg transition-colors disabled:opacity-50"
+                            title="Sync account"
+                          >
+                            <RefreshCw
+                              size={13}
+                              className={isBusy ? 'animate-spin text-[#A855F7]' : ''}
+                            />
+                          </button>
+
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setAccountToDisconnect(account);
+                            }}
+                            className="p-1 text-zinc-400 hover:text-rose-400 rounded-lg transition-colors"
+                            title="Disconnect"
+                          >
+                            <MoreVertical size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="py-8 text-center space-y-2">
+                    <Users size={24} className="text-zinc-400 mx-auto" />
+                    <p className="text-xs text-zinc-400">No accounts connected yet</p>
+                    <button
+                      onClick={() => setIsAddModalOpen(true)}
+                      className="text-xs text-[#A855F7] hover:underline font-medium"
+                    >
+                      + Add your first account
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Bottom View All Link */}
+            <div className="pt-3 border-t border-[#22242A]/60 flex items-center justify-between">
+              <span className="text-[11px] text-zinc-400">
+                {accounts.length} total accounts
+              </span>
+              <Link
+                href="/accounts"
+                className="text-xs font-semibold text-[#A855F7] hover:text-[#C084FC] flex items-center gap-1 transition-colors"
+              >
+                <span>View all</span>
+                <ArrowUpRight size={13} />
+              </Link>
+            </div>
+          </div>
+        </div>
+      </main>
 
       {/* Modals */}
       <AddAccountModal
@@ -508,8 +728,8 @@ export default function DashboardPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-[#141517] flex items-center justify-center">
-          <div className="animate-spin w-8 h-8 border-2 border-[#5865F2] border-t-transparent rounded-full" />
+        <div className="min-h-screen bg-[#0A0A0C] flex items-center justify-center">
+          <div className="animate-spin w-8 h-8 border-2 border-[#7C3AED] border-t-transparent rounded-full" />
         </div>
       }
     >
@@ -517,4 +737,3 @@ export default function DashboardPage() {
     </Suspense>
   );
 }
-

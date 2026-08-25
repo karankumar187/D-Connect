@@ -3,44 +3,46 @@
 @tailwind utilities;
 
 :root {
-  --bg-primary: #1e1f22;
-  --bg-secondary: #2b2d31;
-  --bg-tertiary: #141517;
-  --discord-blurple: #5865f2;
-  --discord-blurple-hover: #4752c4;
+  --bg-main: #0a0a0c;
+  --card-bg: #141518;
+  --card-border: #22242a;
+  --pill-bg: #1a1b20;
+  --accent-purple: #7c3aed;
+  --accent-purple-light: #a855f7;
+  --accent-lime: #a3e635;
 }
 
 body {
-  background-color: var(--bg-tertiary);
-  color: #f2f3f5;
+  background-color: #0a0a0c;
+  color: #f3f4f6;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   overflow-x: hidden;
 }
 
-/* Custom modern dark scrollbar */
+/* Custom sleek dark scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #1e1f22;
+  background: #0a0a0c;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #3f4147;
-  border-radius: 4px;
+  background: #27282f;
+  border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #5865f2;
+  background: #7c3aed;
 }
 
-/* Discord blurple glow effect */
-.glow-blurple {
-  box-shadow: 0 0 20px -5px rgba(88, 101, 242, 0.4);
+/* Glowing effects */
+.glow-purple {
+  box-shadow: 0 0 25px -5px rgba(124, 58, 237, 0.45);
 }
 
-.glow-subtle {
-  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.5);
+.glow-lime {
+  box-shadow: 0 0 20px -5px rgba(163, 230, 53, 0.4);
 }
