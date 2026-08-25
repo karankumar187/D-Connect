@@ -4,9 +4,10 @@ import { cookies } from 'next/headers';
 import { AuthSession, SafeDiscordAccount } from './types';
 import { DiscordAccount } from '@prisma/client';
 
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.SECRET_KEY || 'default-dashboard-jwt-secret-key-32-chars-min'
-);
+function getJwtSecret(): Uint8Array {
+  const secret = process.env.SECRET_KEY || 'default-dashboard-jwt-secret-key-32-chars-min';
+  return new TextEncoder().encode(secret);
+}
 
 const COOKIE_NAME = 'discord_dashboard_session';
 const SESSION_DURATION_SECONDS = 60 * 60 * 24 * 7; // 7 days
@@ -28,12 +29,12 @@ export async function createSessionToken(session: AuthSession): Promise<string> 
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime(`${SESSION_DURATION_SECONDS}s`)
-    .sign(JWT_SECRET);
+    .sign(getJwtSecret());
 }
 
 export async function verifySessionToken(token: string): Promise<AuthSession | null> {
   try {
-    const { payload } = await jwtVerify(token, JWT_SECRET);
+    const { payload } = await jwtVerify(token, getJwtSecret());
     return {
       userId: payload.userId as string,
       email: payload.email as string,

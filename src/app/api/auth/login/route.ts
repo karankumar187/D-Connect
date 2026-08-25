@@ -61,8 +61,13 @@ export async function POST(request: Request) {
     return response;
   } catch (error: any) {
     console.error('Login error:', error);
+    const errorMessage =
+      error?.message?.includes('database') || error?.message?.includes('Prisma') || error?.message?.includes('connect')
+        ? `Database connection error: ${error.message}. Please check MongoDB Atlas IP Access List (allow 0.0.0.0/0).`
+        : error?.message || 'Internal server error during login';
+
     return NextResponse.json(
-      { error: 'Internal server error during login' },
+      { error: errorMessage },
       { status: 500 }
     );
   }
