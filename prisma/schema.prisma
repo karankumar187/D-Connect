@@ -1,0 +1,96 @@
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id              String           @id @default(auto()) @map("_id") @db.ObjectId
+  email           String           @unique
+  passwordHash    String
+  name            String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  discordAccounts DiscordAccount[]
+  notifications   Notification[]
+
+  @@map("users")
+}
+
+model DiscordAccount {
+  id                    String        @id @default(auto()) @map("_id") @db.ObjectId
+  userId                String        @db.ObjectId
+  user                  User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  discordUserId         String
+  username              String
+  globalName            String?
+  avatarHash            String?
+  avatarUrl             String?
+  email                 String?
+  encryptedAccessToken  String
+  encryptedRefreshToken String
+  tokenExpiresAt        DateTime
+  authorizationStatus   String        @default("connected") // connected, expired, reauthorization_required, disconnected, error
+  nitroStatus           String        @default("not_available") // active, inactive, unknown, not_available
+  nitroPlan             String?
+  lastSyncedAt          DateTime?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+  syncLogs              SyncLog[]
+
+  @@unique([userId, discordUserId])
+  @@index([userId])
+  @@index([discordUserId])
+  @@index([authorizationStatus])
+  @@index([lastSyncedAt])
+  @@map("discord_accounts")
+}
+
+model SyncLog {
+  id               String         @id @default(auto()) @map("_id") @db.ObjectId
+  discordAccountId String         @db.ObjectId
+  discordAccount   DiscordAccount @relation(fields: [discordAccountId], references: [id], onDelete: Cascade)
+  startedAt        DateTime       @default(now())
+  completedAt      DateTime?
+  status           String         @default("running") // running, success, rate_limited, failed
+  errorCode        String?
+  errorMessage     String?
+  details          String?
+  createdAt        DateTime       @default(now())
+
+  @@index([discordAccountId])
+  @@index([status])
+  @@map("sync_logs")
+}
+
+model Notification {
+  id               String    @id @default(auto()) @map("_id") @db.ObjectId
+  userId           String    @db.ObjectId
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  discordAccountId String?
+  type             String // sync_success, sync_failed, reauth_required, account_connected, account_disconnected, info
+  title            String
+  body             String
+  readAt           DateTime?
+  createdAt        DateTime  @default(now())
+
+  @@index([userId])
+  @@index([readAt])
+  @@map("notifications")
+}
+
+model OAuthState {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId       String
+  state        String   @unique
+  codeVerifier String?
+  redirectTo   String?
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+
+  @@index([expiresAt])
+  @@map("oauth_states")
+}
