@@ -153,6 +153,29 @@ export default function AccountDetailPage() {
     }
   };
 
+  const handleUpdateNitroPlan = async (plan: string) => {
+    if (!account) return;
+    try {
+      const res = await fetch(`/api/discord/accounts/${account.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nitroPlan: plan === 'None' ? null : plan,
+          nitroStatus: plan === 'None' ? 'inactive' : 'active',
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.account) {
+        setAccount(data.account);
+        showToast(`Nitro status updated to: ${plan}`, 'success');
+      } else {
+        showToast('Failed to update Nitro status', 'error');
+      }
+    } catch {
+      showToast('Error updating Nitro status', 'error');
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#0A0A0C] text-[#F3F4F6]">
@@ -376,29 +399,43 @@ export default function AccountDetailPage() {
             </div>
 
             <div className="space-y-3 text-xs">
+              <div className="p-3.5 bg-[#1A1B20] border border-[#2B2245] rounded-2xl space-y-2">
+                <p className="text-[11px] font-semibold text-zinc-300">Select / Override Plan:</p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                  {['Nitro', 'Nitro Basic', 'Nitro Classic', 'None'].map((plan) => (
+                    <button
+                      key={plan}
+                      onClick={() => handleUpdateNitroPlan(plan)}
+                      className={`px-2.5 py-1.5 rounded-xl text-[11px] font-medium transition-all ${
+                        (account.nitroPlan === plan) || (plan === 'None' && account.nitroStatus !== 'active')
+                          ? 'bg-gradient-to-r from-[#7C3AED] to-[#9333EA] text-white font-semibold shadow-sm'
+                          : 'bg-[#141518] text-zinc-400 hover:text-white border border-[#22242A]'
+                      }`}
+                    >
+                      {plan}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {account.nitroStatus === 'active' ? (
-                <div className="p-4 bg-[#7C3AED]/10 border border-[#7C3AED]/20 rounded-2xl space-y-1.5">
-                  <p className="font-semibold text-white">Plan: {account.nitroPlan}</p>
+                <div className="p-3.5 bg-[#7C3AED]/10 border border-[#7C3AED]/25 rounded-2xl space-y-1">
+                  <p className="font-semibold text-white">Active Plan: {account.nitroPlan || 'Nitro'}</p>
                   <p className="text-zinc-300 text-[11px]">
-                    Verified via Discord API v10 <span className="font-mono">premium_type</span>.
+                    Includes custom emoji, HD streaming, profile badge & server boosts.
                   </p>
                 </div>
               ) : (
-                <div className="p-4 bg-[#1A1B20] border border-[#22242A] rounded-2xl space-y-1.5">
+                <div className="p-3.5 bg-[#1A1B20] border border-[#22242A] rounded-2xl space-y-1">
                   <div className="flex items-center gap-1.5 text-zinc-300 font-medium">
-                    <Info size={14} className="text-zinc-400" />
-                    <span>Official Discord API Policy</span>
+                    <Info size={13} className="text-[#A855F7]" />
+                    <span>Auto-detection from Discord</span>
                   </div>
                   <p className="text-zinc-400 text-[11px] leading-relaxed">
-                    Discord restricts subscription billing metadata on public OAuth apps unless approved for partner scope. We transparently report API data without guessing or scraping.
+                    Discord restricts billing metadata on standard OAuth apps. You can select your plan above or click Sync Now to auto-detect.
                   </p>
                 </div>
               )}
-
-              <div className="flex items-center justify-between text-[11px] text-zinc-400 pt-2">
-                <span>Compliance:</span>
-                <span className="text-emerald-400 font-semibold">100% Official REST API</span>
-              </div>
             </div>
           </div>
         </div>

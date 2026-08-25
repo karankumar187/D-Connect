@@ -83,7 +83,10 @@ export async function GET(request: Request) {
       discordUser.discriminator
     );
 
-    const { nitroStatus, nitroPlan } = parseNitroStatus(discordUser.premium_type);
+    const { nitroStatus, nitroPlan } = parseNitroStatus(
+      discordUser.premium_type,
+      discordUser
+    );
 
     // 6. Upsert the DiscordAccount record for this user
     const account = await prisma.discordAccount.upsert({

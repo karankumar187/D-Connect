@@ -146,7 +146,10 @@ export async function syncDiscordAccount(
       discordUser.discriminator
     );
 
-    const { nitroStatus, nitroPlan } = parseNitroStatus(discordUser.premium_type);
+    const { nitroStatus, nitroPlan } = parseNitroStatus(
+      discordUser.premium_type,
+      discordUser
+    );
 
     // 5. Update Discord Account record in database
     const updatedAccount = await prisma.discordAccount.update({

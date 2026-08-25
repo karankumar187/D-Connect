@@ -190,41 +190,74 @@ export function buildAvatarUrl(
 }
 
 /**
- * Normalizes Nitro status strictly according to official API response.
- * Principle: Accuracy over appearance.
+ * Normalizes Nitro status according to official API response and profile features.
+ * Detects premium_type (1: Classic, 2: Nitro, 3: Basic) and Nitro-exclusive profile features
+ * such as animated GIF avatars (a_...), custom banners, and avatar decorations.
  */
-export function parseNitroStatus(premiumType?: number | null): {
+export function parseNitroStatus(
+  premiumType?: number | null,
+  userProfile?: {
+    avatar?: string | null;
+    banner?: string | null;
+    avatar_decoration_data?: any;
+    flags?: number;
+    public_flags?: number;
+  }
+): {
   nitroStatus: NitroStatus;
   nitroPlan: string | null;
 } {
-  if (premiumType === undefined || premiumType === null) {
+  // 1. Direct premium_type from API
+  if (premiumType === 1) {
     return {
-      nitroStatus: 'not_available',
+      nitroStatus: 'active',
+      nitroPlan: 'Nitro Classic',
+    };
+  }
+  if (premiumType === 2) {
+    return {
+      nitroStatus: 'active',
+      nitroPlan: 'Nitro',
+    };
+  }
+  if (premiumType === 3) {
+    return {
+      nitroStatus: 'active',
+      nitroPlan: 'Nitro Basic',
+    };
+  }
+
+  // 2. Profile features that are exclusive to Nitro subscribers
+  if (userProfile?.avatar && userProfile.avatar.startsWith('a_')) {
+    return {
+      nitroStatus: 'active',
+      nitroPlan: 'Nitro',
+    };
+  }
+
+  if (userProfile?.banner) {
+    return {
+      nitroStatus: 'active',
+      nitroPlan: 'Nitro',
+    };
+  }
+
+  if (userProfile?.avatar_decoration_data) {
+    return {
+      nitroStatus: 'active',
+      nitroPlan: 'Nitro',
+    };
+  }
+
+  if (premiumType === 0) {
+    return {
+      nitroStatus: 'inactive',
       nitroPlan: null,
     };
   }
 
-  switch (premiumType) {
-    case 1:
-      return {
-        nitroStatus: 'active',
-        nitroPlan: 'Nitro Classic',
-      };
-    case 2:
-      return {
-        nitroStatus: 'active',
-        nitroPlan: 'Nitro',
-      };
-    case 3:
-      return {
-        nitroStatus: 'active',
-        nitroPlan: 'Nitro Basic',
-      };
-    case 0:
-    default:
-      return {
-        nitroStatus: 'inactive',
-        nitroPlan: null,
-      };
-  }
+  return {
+    nitroStatus: 'inactive',
+    nitroPlan: null,
+  };
 }
