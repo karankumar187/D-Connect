@@ -160,7 +160,7 @@ function AccountsContent() {
                 ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20'
                 : toastMessage.type === 'error'
                 ? 'bg-rose-500/10 text-rose-300 border-rose-500/20'
-                : 'bg-[#7C3AED]/10 text-purple-300 border-[#7C3AED]/20'
+                : 'bg-[#7C3AED]/15 text-purple-200 border-[#7C3AED]/30 shadow-md shadow-purple-950/30'
             }`}
           >
             <div className="flex items-center gap-2">
@@ -169,7 +169,7 @@ function AccountsContent() {
               ) : toastMessage.type === 'error' ? (
                 <AlertCircle size={16} className="text-rose-400 shrink-0" />
               ) : (
-                <Sparkles size={16} className="text-[#A855F7] shrink-0" />
+                <Sparkles size={16} className="text-[#C084FC] shrink-0" />
               )}
               <span>{toastMessage.text}</span>
             </div>
@@ -197,7 +197,7 @@ function AccountsContent() {
 
           <button
             onClick={() => setIsAddModalOpen(true)}
-            className="flex items-center gap-2 self-start sm:self-auto bg-white hover:bg-zinc-200 text-black text-xs font-semibold px-5 py-2.5 rounded-full shadow-lg shadow-white/10 transition-all active:scale-[0.98]"
+            className="flex items-center gap-2 self-start sm:self-auto bg-gradient-to-r from-[#7C3AED] via-[#8B5CF6] to-[#A855F7] hover:from-[#6D28D9] hover:to-[#9333EA] text-white text-xs font-semibold px-5 py-2.5 rounded-full shadow-lg shadow-purple-900/30 hover:shadow-purple-700/40 transition-all active:scale-[0.98]"
           >
             <Plus size={15} />
             <span>Connect New Account</span>
@@ -205,28 +205,28 @@ function AccountsContent() {
         </div>
 
         {/* Search & Filter Bar */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-[#141518] p-3 rounded-2xl border border-[#22242A]">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-[#141518] p-3 rounded-2xl border border-[#2B2245]/70 shadow-lg">
           <div className="relative flex-1">
             <Search
               size={15}
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400"
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#A855F7]"
             />
             <input
               type="text"
               placeholder="Search by username or Snowflake ID..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-[#1A1B20] text-xs text-white placeholder-zinc-500 pl-10 pr-4 py-2.5 rounded-xl border border-[#22242A] focus:outline-none focus:border-[#7C3AED] transition-colors"
+              className="w-full bg-[#1A1B20] text-xs text-white placeholder-zinc-500 pl-10 pr-4 py-2.5 rounded-xl border border-[#2B2245] focus:outline-none focus:border-[#8B5CF6] focus:ring-1 focus:ring-[#8B5CF6]/40 transition-colors"
             />
           </div>
 
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
-            <div className="flex items-center gap-1 bg-[#1A1B20] p-1 rounded-xl border border-[#22242A] text-xs font-medium">
+            <div className="flex items-center gap-1 bg-[#1A1B20] p-1 rounded-xl border border-[#2B2245] text-xs font-medium">
               <button
                 onClick={() => setStatusFilter('all')}
-                className={`px-3 py-1.5 rounded-lg transition-colors ${
+                className={`px-3 py-1.5 rounded-lg transition-all ${
                   statusFilter === 'all'
-                    ? 'bg-white text-black font-semibold'
+                    ? 'bg-gradient-to-r from-[#7C3AED] to-[#9333EA] text-white font-semibold shadow-sm shadow-purple-900/40'
                     : 'text-zinc-400 hover:text-white'
                 }`}
               >
@@ -234,9 +234,9 @@ function AccountsContent() {
               </button>
               <button
                 onClick={() => setStatusFilter('connected')}
-                className={`px-3 py-1.5 rounded-lg transition-colors ${
+                className={`px-3 py-1.5 rounded-lg transition-all ${
                   statusFilter === 'connected'
-                    ? 'bg-white text-black font-semibold'
+                    ? 'bg-gradient-to-r from-[#7C3AED] to-[#9333EA] text-white font-semibold shadow-sm shadow-purple-900/40'
                     : 'text-zinc-400 hover:text-white'
                 }`}
               >
@@ -244,9 +244,9 @@ function AccountsContent() {
               </button>
               <button
                 onClick={() => setStatusFilter('needs_reauth')}
-                className={`px-3 py-1.5 rounded-lg transition-colors ${
+                className={`px-3 py-1.5 rounded-lg transition-all ${
                   statusFilter === 'needs_reauth'
-                    ? 'bg-white text-black font-semibold'
+                    ? 'bg-gradient-to-r from-[#7C3AED] to-[#9333EA] text-white font-semibold shadow-sm shadow-purple-900/40'
                     : 'text-zinc-400 hover:text-white'
                 }`}
               >
@@ -254,9 +254,9 @@ function AccountsContent() {
               </button>
               <button
                 onClick={() => setStatusFilter('nitro_active')}
-                className={`px-3 py-1.5 rounded-lg transition-colors ${
+                className={`px-3 py-1.5 rounded-lg transition-all ${
                   statusFilter === 'nitro_active'
-                    ? 'bg-white text-black font-semibold'
+                    ? 'bg-gradient-to-r from-[#7C3AED] to-[#9333EA] text-white font-semibold shadow-sm shadow-purple-900/40'
                     : 'text-zinc-400 hover:text-white'
                 }`}
               >
@@ -288,7 +288,7 @@ function AccountsContent() {
               return (
                 <div
                   key={account.id}
-                  className="bg-[#141518] hover:bg-[#18191E] border border-[#22242A] hover:border-[#7C3AED]/40 rounded-3xl p-6 transition-all duration-200 shadow-xl flex flex-col justify-between group"
+                  className="bg-[#141518] hover:bg-[#181922] border border-[#22242A] hover:border-[#8B5CF6]/50 rounded-3xl p-6 transition-all duration-200 shadow-xl hover:shadow-purple-950/30 flex flex-col justify-between group"
                 >
                   <div>
                     {/* Top Row: Avatar & Status */}
@@ -302,7 +302,7 @@ function AccountsContent() {
                               'https://cdn.discordapp.com/embed/avatars/0.png'
                             }
                             alt={account.username}
-                            className="w-12 h-12 rounded-2xl object-cover ring-2 ring-[#22242A] bg-[#0A0A0C]"
+                            className="w-12 h-12 rounded-2xl object-cover ring-2 ring-purple-500/25 bg-[#0A0A0C]"
                             onError={(e) => {
                               (e.target as HTMLImageElement).src =
                                 'https://cdn.discordapp.com/embed/avatars/0.png';
@@ -320,7 +320,7 @@ function AccountsContent() {
                         </div>
 
                         <div className="overflow-hidden">
-                          <h3 className="font-semibold text-white text-sm truncate group-hover:text-[#A855F7] transition-colors">
+                          <h3 className="font-semibold text-white text-sm truncate group-hover:text-[#C084FC] transition-colors">
                             {account.globalName || account.username}
                           </h3>
                           <p className="text-xs text-zinc-400 font-mono mt-0.5 truncate">
@@ -328,7 +328,7 @@ function AccountsContent() {
                           </p>
                           <button
                             onClick={(e) => handleCopyId(account.discordUserId, e)}
-                            className="inline-flex items-center gap-1 text-[11px] text-zinc-400 hover:text-zinc-200 mt-1 font-mono transition-colors"
+                            className="inline-flex items-center gap-1 text-[11px] text-zinc-400 hover:text-[#C084FC] mt-1 font-mono transition-colors"
                           >
                             <span>ID: {account.discordUserId}</span>
                             {copiedId === account.discordUserId ? (
@@ -342,8 +342,8 @@ function AccountsContent() {
 
                       {/* Tag Pill */}
                       {account.nitroStatus === 'active' ? (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-medium text-[#C084FC] bg-[#7C3AED]/15 px-2.5 py-1 rounded-full border border-[#7C3AED]/30">
-                          <Sparkles size={11} />
+                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-[#DDD6FE] bg-[#7C3AED]/25 px-2.5 py-1 rounded-full border border-[#7C3AED]/40 shadow-sm shadow-purple-900/30">
+                          <Sparkles size={11} className="text-[#C084FC]" />
                           <span>{account.nitroPlan || 'Nitro'}</span>
                         </span>
                       ) : isConnected ? (
@@ -362,7 +362,7 @@ function AccountsContent() {
                     {/* Metadata row */}
                     <div className="flex items-center justify-between text-[11px] text-zinc-400 mt-4 pt-3 border-t border-[#22242A]/60">
                       <span className="flex items-center gap-1">
-                        <Clock size={12} />
+                        <Clock size={12} className="text-zinc-500" />
                         <span>
                           {account.lastSyncedAt
                             ? formatDistanceToNow(new Date(account.lastSyncedAt), {
@@ -371,7 +371,7 @@ function AccountsContent() {
                             : 'Never synced'}
                         </span>
                       </span>
-                      <span className="font-mono text-[10px] text-emerald-400">
+                      <span className="font-mono text-[10px] text-[#A855F7]">
                         AES-256-GCM
                       </span>
                     </div>
@@ -381,7 +381,7 @@ function AccountsContent() {
                   <div className="flex items-center justify-between gap-2 mt-5 pt-3 border-t border-[#22242A]/60">
                     <Link
                       href={`/accounts/${account.id}`}
-                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-zinc-300 hover:text-white bg-[#1A1B20] hover:bg-[#22242A] border border-[#22242A] rounded-full transition-colors"
+                      className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-medium text-zinc-300 hover:text-white bg-[#1A1B20] hover:bg-[#2B2245] border border-[#22242A] hover:border-purple-500/40 rounded-full transition-all"
                     >
                       <span>Details</span>
                       <ExternalLink size={12} />
@@ -392,11 +392,11 @@ function AccountsContent() {
                         onClick={(e) => handleRefreshAccount(account.id, e)}
                         disabled={isBusy}
                         title="Sync account"
-                        className="p-2 text-zinc-300 hover:text-white bg-[#1A1B20] hover:bg-[#22242A] border border-[#22242A] rounded-full transition-colors disabled:opacity-50"
+                        className="p-2 text-zinc-300 hover:text-white bg-[#1A1B20] hover:bg-[#2B2245] border border-[#22242A] hover:border-purple-500/40 rounded-full transition-all disabled:opacity-50"
                       >
                         <RefreshCw
                           size={13}
-                          className={isBusy ? 'animate-spin text-[#A855F7]' : ''}
+                          className={isBusy ? 'animate-spin text-[#C084FC]' : 'text-[#A855F7]'}
                         />
                       </button>
 
@@ -414,8 +414,8 @@ function AccountsContent() {
             })}
           </div>
         ) : (
-          <div className="bg-[#141518] border border-[#22242A] rounded-3xl p-12 text-center max-w-lg mx-auto space-y-4 shadow-xl">
-            <div className="w-14 h-14 rounded-full bg-[#7C3AED]/15 text-[#A855F7] flex items-center justify-center mx-auto">
+          <div className="bg-[#141518] border border-[#2B2245]/60 rounded-3xl p-12 text-center max-w-lg mx-auto space-y-4 shadow-xl">
+            <div className="w-14 h-14 rounded-full bg-[#7C3AED]/20 text-[#C084FC] flex items-center justify-center mx-auto ring-2 ring-purple-500/20">
               <Users size={28} />
             </div>
             <h3 className="text-base font-semibold text-white">No accounts found</h3>
@@ -424,7 +424,7 @@ function AccountsContent() {
             </p>
             <button
               onClick={() => setIsAddModalOpen(true)}
-              className="inline-flex items-center gap-2 px-5 py-2.5 text-xs font-semibold text-black bg-white hover:bg-zinc-200 rounded-full shadow-lg transition-all"
+              className="inline-flex items-center gap-2 px-5 py-2.5 text-xs font-semibold text-white bg-gradient-to-r from-[#7C3AED] to-[#9333EA] hover:from-[#6D28D9] hover:to-[#7C3AED] rounded-full shadow-lg shadow-purple-900/40 transition-all"
             >
               <Plus size={15} />
               <span>Connect First Account</span>
