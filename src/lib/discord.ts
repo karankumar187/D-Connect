@@ -190,9 +190,32 @@ export function buildAvatarUrl(
 }
 
 /**
- * Normalizes Nitro status according to official API response and profile features.
- * Detects premium_type (1: Classic, 2: Nitro, 3: Basic) and Nitro-exclusive profile features
- * such as animated GIF avatars (a_...), custom banners, and avatar decorations.
+ * Decodes public badges from Discord bitfield flags.
+ */
+export function decodeDiscordBadges(flags: number = 0): string[] {
+  const badges: string[] = [];
+  if (flags & (1 << 0)) badges.push('Discord Staff');
+  if (flags & (1 << 1)) badges.push('Partnered Server Owner');
+  if (flags & (1 << 2)) badges.push('HypeSquad Events');
+  if (flags & (1 << 3)) badges.push('Bug Hunter Lv1');
+  if (flags & (1 << 6)) badges.push('HypeSquad Bravery');
+  if (flags & (1 << 7)) badges.push('HypeSquad Brilliance');
+  if (flags & (1 << 8)) badges.push('HypeSquad Balance');
+  if (flags & (1 << 9)) badges.push('Early Nitro Supporter');
+  if (flags & (1 << 14)) badges.push('Bug Hunter Lv2');
+  if (flags & (1 << 17)) badges.push('Verified Bot Developer');
+  if (flags & (1 << 18)) badges.push('Certified Moderator');
+  if (flags & (1 << 22)) badges.push('Active Developer');
+  return badges;
+}
+
+/**
+ * Checks all official Discord premium_type values and profile features:
+ * - premium_type: 2 -> Nitro ($9.99/mo)
+ * - premium_type: 3 -> Nitro Basic ($2.99/mo)
+ * - premium_type: 1 -> Nitro Classic ($4.99/mo)
+ * - premium_type: 0 -> None
+ * Also checks Nitro-exclusive profile assets: animated GIF avatars (a_...), custom banners, and avatar decorations.
  */
 export function parseNitroStatus(
   premiumType?: number | null,
@@ -206,32 +229,39 @@ export function parseNitroStatus(
 ): {
   nitroStatus: NitroStatus;
   nitroPlan: string | null;
+  rawType: number;
 } {
-  // 1. Direct premium_type from API
-  if (premiumType === 1) {
-    return {
-      nitroStatus: 'active',
-      nitroPlan: 'Nitro Classic',
-    };
-  }
+  // 1. Check all explicit Discord premium_type enum values
   if (premiumType === 2) {
     return {
       nitroStatus: 'active',
       nitroPlan: 'Nitro',
+      rawType: 2,
     };
   }
+
   if (premiumType === 3) {
     return {
       nitroStatus: 'active',
       nitroPlan: 'Nitro Basic',
+      rawType: 3,
     };
   }
 
-  // 2. Profile features that are exclusive to Nitro subscribers
+  if (premiumType === 1) {
+    return {
+      nitroStatus: 'active',
+      nitroPlan: 'Nitro Classic',
+      rawType: 1,
+    };
+  }
+
+  // 2. Profile features that strictly require Nitro
   if (userProfile?.avatar && userProfile.avatar.startsWith('a_')) {
     return {
       nitroStatus: 'active',
       nitroPlan: 'Nitro',
+      rawType: 2,
     };
   }
 
@@ -239,6 +269,7 @@ export function parseNitroStatus(
     return {
       nitroStatus: 'active',
       nitroPlan: 'Nitro',
+      rawType: 2,
     };
   }
 
@@ -246,18 +277,23 @@ export function parseNitroStatus(
     return {
       nitroStatus: 'active',
       nitroPlan: 'Nitro',
+      rawType: 2,
     };
   }
 
-  if (premiumType === 0) {
+  // Check Early Supporter flag (1 << 9 = 512)
+  const allFlags = (userProfile?.flags || 0) | (userProfile?.public_flags || 0);
+  if ((allFlags & 512) !== 0) {
     return {
-      nitroStatus: 'inactive',
-      nitroPlan: null,
+      nitroStatus: 'active',
+      nitroPlan: 'Nitro (Early Supporter)',
+      rawType: 2,
     };
   }
 
   return {
     nitroStatus: 'inactive',
     nitroPlan: null,
+    rawType: 0,
   };
 }

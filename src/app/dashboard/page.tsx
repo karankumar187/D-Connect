@@ -4,6 +4,7 @@ import React, { useEffect, useState, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { TopNav } from '@/components/TopNav';
+import { NitroBadge } from '@/components/NitroBadge';
 import { AddAccountModal } from '@/components/modals/AddAccountModal';
 import { ConfirmDisconnectModal } from '@/components/modals/ConfirmDisconnectModal';
 import { SafeDiscordAccount, DashboardSummary } from '@/lib/types';
@@ -486,23 +487,20 @@ function DashboardContent() {
                         </div>
                       </div>
 
-                      {/* Tag Pill */}
-                      {account.nitroStatus === 'active' ? (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-[#DDD6FE] bg-[#7C3AED]/25 px-2.5 py-1 rounded-full border border-[#7C3AED]/40 shadow-sm shadow-purple-900/30">
-                          <Sparkles size={11} className="text-[#C084FC]" />
-                          <span>{account.nitroPlan || 'Nitro'}</span>
-                        </span>
-                      ) : isConnected ? (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                          <span>Connected</span>
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-medium text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-full border border-amber-500/20">
-                          <AlertTriangle size={11} />
-                          <span>Reauth</span>
-                        </span>
-                      )}
+                      {/* Status Badges */}
+                      <div className="flex flex-col items-end gap-1.5 shrink-0">
+                        <NitroBadge
+                          status={account.nitroStatus}
+                          plan={account.nitroPlan}
+                          size="sm"
+                        />
+                        {needsReauth && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-medium text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
+                            <AlertTriangle size={10} />
+                            <span>Reauth</span>
+                          </span>
+                        )}
+                      </div>
                     </div>
 
                     {/* Metadata row */}
