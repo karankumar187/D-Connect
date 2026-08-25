@@ -15,7 +15,10 @@ export async function GET(request: Request) {
   const error = searchParams.get('error');
   const errorDescription = searchParams.get('error_description');
 
-  const appBaseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  // Derive base URL dynamically from request or APP_URL
+  const requestOrigin = new URL(request.url).origin;
+  const appBaseUrl =
+    (process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || requestOrigin).replace(/\/$/, '');
 
   // 1. Check if user cancelled or Discord returned an error
   if (error) {
